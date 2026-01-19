@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paragon Scoreboard + Agent Monitor
 // @namespace    https://github.com/sandeep030502/tampermonkey-scripts
-// @version      22.1
+// @version      23
 // @description  Paragon Scoreboard + Agent Monitor (Auto Update Enabled)
 // @author       Sandeep
 // @match        https://paragon-na.amazon.com/hz/*
@@ -14,19 +14,18 @@
 // @grant        GM_getValue
 // ==/UserScript==
 
-
 (function () {
     "use strict";
 
     /* ───────── CONFIGURATION ───────── */
-    const STORAGE_KEY_LOGIN = 'scoreboard_login_v22';
-    const STORAGE_KEY_DATA = 'scoreboard_data_v22';
+    const STORAGE_KEY_LOGIN = 'scoreboard_login_v23';
+    const STORAGE_KEY_DATA = 'scoreboard_data_v23';
     const REALTIME_URL = 'https://c2-na-prod.awsapps.com/connect/awas/api/v1/rtm-tables';
-    const SEARCH_API_URL = '/hz/api/search';
+    const SEARCH_API_URL = '/hz/api/search'; 
     const PROFILE_ID = "7c680a87-92df-4c98-95e7-e182acfe5b4a";
 
     /* ───────── 1. CORE NETWORK LOGIC ───────── */
-
+    
     function getParagonToken() {
         const match = document.cookie.match(/pgn_csrf_token=([^;]+)/);
         if (match && match[1]) return decodeURIComponent(match[1]);
@@ -112,7 +111,7 @@
                 body: JSON.stringify(payload)
             });
 
-            if (response.status === 403) return "403";
+            if (response.status === 403) return "403"; 
             if (!response.ok) return "Err";
 
             const data = await response.json();
@@ -141,15 +140,27 @@
     function makeDraggable(element, handle) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         handle.onmousedown = dragMouseDown;
-        function dragMouseDown(e) { e.preventDefault(); pos3 = e.clientX; pos4 = e.clientY; document.onmouseup = closeDragElement; document.onmousemove = elementDrag; }
-        function elementDrag(e) { e.preventDefault(); pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY; pos3 = e.clientX; pos4 = e.clientY; element.style.top = (element.offsetTop - pos2) + "px"; element.style.left = (element.offsetLeft - pos1) + "px"; element.style.bottom = 'auto'; element.style.right = 'auto'; }
+        function dragMouseDown(e) {
+            e.preventDefault();
+            pos3 = e.clientX; pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+        function elementDrag(e) {
+            e.preventDefault();
+            pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY;
+            pos3 = e.clientX; pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + "px";
+            element.style.left = (element.offsetLeft - pos1) + "px";
+            element.style.bottom = 'auto'; element.style.right = 'auto';
+        }
         function closeDragElement() { document.onmouseup = null; document.onmousemove = null; }
     }
 
     /* ───────── 3. UI & LOGIC ───────── */
     function showLoginPrompt() {
         if (document.getElementById('sb-login-overlay')) return;
-        const div = document.createElement("div");
+        const div = document.createElement("div"); 
         div.id = "sb-login-overlay";
         div.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:100000; display:flex; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(8px);";
         div.innerHTML = `
@@ -181,9 +192,9 @@
         };
 
         let data = JSON.parse(localStorage.getItem(STORAGE_KEY_DATA)) || defaults;
-
+        
         const today = getToday();
-        const currentDay = new Date().getDay();
+        const currentDay = new Date().getDay(); 
 
         if (data.date !== today) {
             data.date = today;
@@ -203,7 +214,7 @@
         // --- STYLES ---
         const style = document.createElement('style');
         style.textContent = `
-            .sb-panel { font-family: "Amazon Ember", Arial, sans-serif; background: rgba(23, 31, 46, 0.98); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 32px rgba(0,0,0,0.6); color: #fff; border-radius: 12px; z-index: 999999; overflow: hidden; }
+            .sb-panel { display: none; font-family: "Amazon Ember", Arial, sans-serif; background: rgba(23, 31, 46, 0.98); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 32px rgba(0,0,0,0.6); color: #fff; border-radius: 12px; z-index: 999999; overflow: hidden; }
             .sb-view { padding: 16px; transition: transform 0.3s ease; }
             .sb-btn-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 10px; transition: all 0.2s; font-weight:bold; }
             .sb-btn-small:hover { background: rgba(255,255,255,0.2); color: #fff; }
@@ -211,7 +222,7 @@
             .sb-timer-fill { height: 100%; width: 0%; transition: width 0.5s linear; }
             .sb-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
             .sb-label { color: #94a3b8; } .sb-val { font-weight: 700; color: #fff; }
-            .sb-icon-min { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 100000; display: none; overflow: hidden; }
+            .sb-icon-min { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 100000; display: block; overflow: hidden; }
             .sb-bucket { margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
             .sb-bucket-title { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
             .sb-timer-header { display: flex; align-items: center; font-size: 11px; margin-bottom: 2px; }
@@ -397,13 +408,13 @@
 
         function updateButtonUI(type, active) {
             const btn = refs[`${type}Btn`];
-            if (active) {
+            if (active) { 
                 btn.style.display = 'inline-block';
-                btn.innerText = "Stop";
-                btn.style.background = "rgba(239, 68, 68, 0.2)";
-                btn.style.borderColor = "#ef4444";
-                btn.style.color = "#fca5a5";
-            } else {
+                btn.innerText = "Stop"; 
+                btn.style.background = "rgba(239, 68, 68, 0.2)"; 
+                btn.style.borderColor = "#ef4444"; 
+                btn.style.color = "#fca5a5"; 
+            } else { 
                 btn.style.display = 'none';
             }
         }
@@ -454,7 +465,7 @@
             const count = await fetchAssignedCases(AGENT_NAME);
             refs.assignedVal.innerText = count;
         }
-        setInterval(checkAssignedCases, 30000);
+        setInterval(checkAssignedCases, 30000); 
         checkAssignedCases();
 
         function isShiftTime() { const cur = new Date().toTimeString().slice(0,5); return cur >= data.shiftStart && cur <= data.shiftEnd; }
