@@ -1,14 +1,19 @@
 // ==UserScript==
-// @name         Paragon Scoreboard + Agent Monitor (v22.0 Auto-Only Timers)
-// @namespace    http://tampermonkey.net/
-// @version      22.0
-// @description  Hides Start buttons; Stop button appears only when timer triggers. Includes CSRF Fix.
-// @author       You
+// @name         Paragon Scoreboard + Agent Monitor
+// @namespace    https://github.com/sandeep030502/tampermonkey-scripts
+// @version      22.1
+// @description  Paragon Scoreboard + Agent Monitor (Auto Update Enabled)
+// @author       Sandeep
 // @match        https://paragon-na.amazon.com/hz/*
+//
+// @updateURL    https://raw.githubusercontent.com/sandeep030502/tampermonkey-scripts/main/Paragon-Scoreboard-Agent-Monitor.user.js
+// @downloadURL  https://raw.githubusercontent.com/sandeep030502/tampermonkey-scripts/main/Paragon-Scoreboard-Agent-Monitor.user.js
+//
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
 // ==/UserScript==
+
 
 (function () {
     "use strict";
