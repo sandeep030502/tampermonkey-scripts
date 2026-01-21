@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Paragon Lock & Auto-Reply
+// @name         Paragon Lock & Auto-Reply (Smart V4.1)
 // @namespace    https://github.com/sandeep030502/tampermonkey-scripts
-// @version      3.2
-// @description  Automates the Lock Case -> Reply -> Review -> Send workflow on Paragon
+// @version      4.1
+// @description  Automates Lock -> Reply -> Review -> Send (Works on Pending & Unassigned)
 // @author       Sandeep
 // @match        https://paragon-na.amazon.com/hz/view-case*
 //
@@ -22,7 +22,8 @@ Thank you`;
 
     // --- SELECTORS ---
     const SEL = {
-        LOCK_BTN_TEXT: "Lock Case",
+        // We look for "Lock" to capture "Lock Case"
+        LOCK_KEYWORD: "Lock", 
         REPLY_BTN_TEXT: "Reply",
         REVIEW_BTN_TEXT: "Review",
         SEND_BTN_TEXT: "Send",
@@ -44,9 +45,10 @@ Thank you`;
         }
     }
 
-    function getButtonByText(text) {
+    // Finds button OR anchor tag with specific text
+    function getElementByText(text) {
         return document.evaluate(
-            `//button[contains(., '${text}')]`,
+            `//*[(self::button or self::a or self::span) and contains(., '${text}')]`,
             document,
             null,
             XPathResult.FIRST_ORDERED_NODE_TYPE,
@@ -67,29 +69,39 @@ Thank you`;
         });
     }
 
-    // --- MAIN LOGIC ---
+    // --- MAIN AUTOMATION LOGIC ---
 
     async function runAutomationSequence() {
-        console.log(">> 🔒 Automation sequence started...");
+        console.log(">> 🚀 Automation sequence started...");
 
         try {
-            // STEP 1: Wait for Reply button
-            const replyBtn = await waitFor(() => getButtonByText(SEL.REPLY_BTN_TEXT));
-            await new Promise(r => setTimeout(r, 800)); 
-            replyBtn.click();
+            // STEP 1: Check if Reply Box is ALREADY Open
+            // On Pending cases, the box might already be there. If so, skip clicking 'Reply'.
+            let textArea = document.querySelector(SEL.TEXT_AREA);
+            
+            if (!textArea) {
+                console.log(">> Text area not found. Clicking 'Reply' button...");
+                const replyBtn = await waitFor(() => getElementByText(SEL.REPLY_BTN_TEXT));
+                await new Promise(r => setTimeout(r, 800)); // Wait for Lock transition
+                replyBtn.click();
+                
+                // Now wait for text area to appear
+                textArea = await waitFor(() => document.querySelector(SEL.TEXT_AREA));
+            } else {
+                console.log(">> ⚡ Text area already visible. Skipping 'Reply' click.");
+            }
 
-            // STEP 2: Wait for Text Area
-            const textArea = await waitFor(() => document.querySelector(SEL.TEXT_AREA));
+            // STEP 2: Insert Text
             await new Promise(r => setTimeout(r, 500)); 
             safeInputText(textArea, REPLY_TEXT);
 
             // STEP 3: Click REVIEW
-            const reviewBtn = await waitFor(() => getButtonByText(SEL.REVIEW_BTN_TEXT));
+            const reviewBtn = await waitFor(() => getElementByText(SEL.REVIEW_BTN_TEXT));
             await new Promise(r => setTimeout(r, 500));
             reviewBtn.click();
 
             // STEP 4: Click SEND
-            const sendBtn = await waitFor(() => getButtonByText(SEL.SEND_BTN_TEXT));
+            const sendBtn = await waitFor(() => getElementByText(SEL.SEND_BTN_TEXT));
             await new Promise(r => setTimeout(r, 1000)); 
             sendBtn.click();
             console.log(">> ✅ Sequence Complete.");
@@ -102,21 +114,24 @@ Thank you`;
     // --- INITIALIZATION ---
     
     const observer = new MutationObserver(() => {
-        const lockBtn = getButtonByText(SEL.LOCK_BTN_TEXT);
+        // Look for any element containing "Lock Case" (Button, Anchor, or Span)
+        const lockBtn = getElementByText(SEL.LOCK_KEYWORD + " Case");
         
-        // We check if the button exists and hasn't been tagged yet
         if (lockBtn && !lockBtn.dataset.hasAutoReplyListener) {
+            // We found a "Lock Case" button. Attach the listener.
             lockBtn.dataset.hasAutoReplyListener = "true";
             
             lockBtn.addEventListener('click', (e) => {
-                // BUG FIX: Check if the button text is actually "Lock Case" right now.
-                // If the text has changed to "Release Case", this will be false, and we stop.
-                const currentText = e.currentTarget.textContent || "";
-                if (!currentText.includes(SEL.LOCK_BTN_TEXT)) {
-                    console.log(">> Clicked button is NOT 'Lock Case' (probably Release). Stopping automation.");
+                // SAFETY CHECK: verify the text still says "Lock" when clicked.
+                // This prevents running if the button turned into "Release".
+                const currentText = (e.currentTarget.textContent || "").trim();
+                
+                if (!currentText.includes(SEL.LOCK_KEYWORD)) {
+                    console.log(`>> Clicked button text is '${currentText}'. Stopping (not Lock).`);
                     return; 
                 }
                 
+                // If it IS "Lock Case", run the script
                 runAutomationSequence();
             });
             
