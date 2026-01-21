@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paragon Lock & Auto-Reply
 // @namespace    https://github.com/sandeep030502/tampermonkey-scripts
-// @version      1.0
+// @version      3.2
 // @description  Automates the Lock Case -> Reply -> Review -> Send workflow on Paragon
 // @author       Sandeep
 // @match        https://paragon-na.amazon.com/hz/view-case*
@@ -26,23 +26,18 @@ Thank you`;
         REPLY_BTN_TEXT: "Reply",
         REVIEW_BTN_TEXT: "Review",
         SEND_BTN_TEXT: "Send",
-        // Exact CSS path for the text area
         TEXT_AREA: "#composer > kat-card:nth-child(3) > div:nth-child(6) > div.textarea-container.component.outbound-textbox > div:nth-child(1) > textarea"
     };
 
     // --- HELPER FUNCTIONS ---
 
-    // Safe input method (Crash-Proof)
     function safeInputText(element, text) {
         if (!element) return;
         element.focus();
-
         try {
-            // Method 1: Simulate user typing (Best for Amazon/React)
             const success = document.execCommand('insertText', false, text);
             if (!success) throw new Error("execCommand failed");
         } catch (e) {
-            // Method 2: Fallback direct assignment
             element.value = text;
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
@@ -64,13 +59,9 @@ Thank you`;
             const start = Date.now();
             const check = () => {
                 const result = conditionFunc();
-                if (result) {
-                    resolve(result);
-                } else if (Date.now() - start > timeout) {
-                    reject(new Error("Timeout waiting for element"));
-                } else {
-                    requestAnimationFrame(check);
-                }
+                if (result) resolve(result);
+                else if (Date.now() - start > timeout) reject(new Error("Timeout waiting for element"));
+                else requestAnimationFrame(check);
             };
             check();
         });
@@ -84,14 +75,12 @@ Thank you`;
         try {
             // STEP 1: Wait for Reply button
             const replyBtn = await waitFor(() => getButtonByText(SEL.REPLY_BTN_TEXT));
-            await new Promise(r => setTimeout(r, 800)); // Wait for UI stability
+            await new Promise(r => setTimeout(r, 800)); 
             replyBtn.click();
 
             // STEP 2: Wait for Text Area
             const textArea = await waitFor(() => document.querySelector(SEL.TEXT_AREA));
             await new Promise(r => setTimeout(r, 500)); 
-            
-            // Insert Text Safely
             safeInputText(textArea, REPLY_TEXT);
 
             // STEP 3: Click REVIEW
@@ -107,7 +96,6 @@ Thank you`;
 
         } catch (e) {
             console.error(">> ❌ Automation failed:", e);
-            alert("Automation stopped: " + e.message);
         }
     }
 
@@ -115,9 +103,24 @@ Thank you`;
     
     const observer = new MutationObserver(() => {
         const lockBtn = getButtonByText(SEL.LOCK_BTN_TEXT);
+        
+        // We check if the button exists and hasn't been tagged yet
         if (lockBtn && !lockBtn.dataset.hasAutoReplyListener) {
             lockBtn.dataset.hasAutoReplyListener = "true";
-            lockBtn.addEventListener('click', runAutomationSequence);
+            
+            lockBtn.addEventListener('click', (e) => {
+                // BUG FIX: Check if the button text is actually "Lock Case" right now.
+                // If the text has changed to "Release Case", this will be false, and we stop.
+                const currentText = e.currentTarget.textContent || "";
+                if (!currentText.includes(SEL.LOCK_BTN_TEXT)) {
+                    console.log(">> Clicked button is NOT 'Lock Case' (probably Release). Stopping automation.");
+                    return; 
+                }
+                
+                runAutomationSequence();
+            });
+            
+            console.log(">> 🟢 Script active: Listener attached to Lock Case button.");
         }
     });
 
