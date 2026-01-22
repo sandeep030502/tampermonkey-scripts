@@ -1,17 +1,16 @@
 // ==UserScript==
-// @name         Paragon Scoreboard + Agent Monitor
+// @name         Agent Scoreboard pro
 // @namespace    https://github.com/sandeep030502/tampermonkey-scripts
-// @version      23
-// @description  Paragon Scoreboard + Agent Monitor (Auto Update Enabled)
-// @author       Sandeep
+// @version      24.0
+// @description  Paragon Scoreboard + Agent Monitor (Synced & Positioned Right)
+// @author       @ysaisan
 // @match        https://paragon-na.amazon.com/hz/*
-//
 // @updateURL    https://raw.githubusercontent.com/sandeep030502/tampermonkey-scripts/main/Paragon-Scoreboard-Agent-Monitor.user.js
 // @downloadURL  https://raw.githubusercontent.com/sandeep030502/tampermonkey-scripts/main/Paragon-Scoreboard-Agent-Monitor.user.js
-//
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_addValueChangeListener
 // ==/UserScript==
 
 (function () {
@@ -21,11 +20,11 @@
     const STORAGE_KEY_LOGIN = 'scoreboard_login_v23';
     const STORAGE_KEY_DATA = 'scoreboard_data_v23';
     const REALTIME_URL = 'https://c2-na-prod.awsapps.com/connect/awas/api/v1/rtm-tables';
-    const SEARCH_API_URL = '/hz/api/search'; 
+    const SEARCH_API_URL = '/hz/api/search';
     const PROFILE_ID = "7c680a87-92df-4c98-95e7-e182acfe5b4a";
 
     /* ───────── 1. CORE NETWORK LOGIC ───────── */
-    
+
     function getParagonToken() {
         const match = document.cookie.match(/pgn_csrf_token=([^;]+)/);
         if (match && match[1]) return decodeURIComponent(match[1]);
@@ -111,7 +110,7 @@
                 body: JSON.stringify(payload)
             });
 
-            if (response.status === 403) return "403"; 
+            if (response.status === 403) return "403";
             if (!response.ok) return "Err";
 
             const data = await response.json();
@@ -160,7 +159,7 @@
     /* ───────── 3. UI & LOGIC ───────── */
     function showLoginPrompt() {
         if (document.getElementById('sb-login-overlay')) return;
-        const div = document.createElement("div"); 
+        const div = document.createElement("div");
         div.id = "sb-login-overlay";
         div.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:100000; display:flex; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(8px);";
         div.innerHTML = `
@@ -173,7 +172,7 @@
         document.body.appendChild(div);
         document.getElementById('sb-login-btn').onclick = () => {
             const val = document.getElementById('sb-login-input').value.trim();
-            if(val) { localStorage.setItem(STORAGE_KEY_LOGIN, val); location.reload(); }
+            if(val) { GM_setValue(STORAGE_KEY_LOGIN, val); location.reload(); }
         };
     }
 
@@ -191,10 +190,11 @@
             }
         };
 
-        let data = JSON.parse(localStorage.getItem(STORAGE_KEY_DATA)) || defaults;
-        
+        // LOAD DATA FROM GM STORAGE
+        let data = GM_getValue(STORAGE_KEY_DATA, defaults);
+
         const today = getToday();
-        const currentDay = new Date().getDay(); 
+        const currentDay = new Date().getDay();
 
         if (data.date !== today) {
             data.date = today;
@@ -206,7 +206,8 @@
         if (currentDay === 0 && data.timers.personal.lastReset !== today) {
             data.timers.personal = { acc: 0, active: false, lastStart: 0, lastReset: today };
         }
-        const save = () => localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(data));
+
+        const save = () => GM_setValue(STORAGE_KEY_DATA, data);
         save();
 
         const PHOTO_URL = `https://badgephotos.corp.amazon.com/?uid=${AGENT_NAME}`;
@@ -222,7 +223,8 @@
             .sb-timer-fill { height: 100%; width: 0%; transition: width 0.5s linear; }
             .sb-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
             .sb-label { color: #94a3b8; } .sb-val { font-weight: 700; color: #fff; }
-            .sb-icon-min { position: fixed; bottom: 20px; left: 20px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 100000; display: block; overflow: hidden; }
+            /* CHANGED: LEFT to RIGHT */
+            .sb-icon-min { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 100000; display: block; overflow: hidden; }
             .sb-bucket { margin-bottom: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
             .sb-bucket-title { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
             .sb-timer-header { display: flex; align-items: center; font-size: 11px; margin-bottom: 2px; }
@@ -246,7 +248,8 @@
 
         const container = document.createElement("div");
         container.className = "sb-panel";
-        container.style.cssText = "position: fixed; bottom: 80px; left: 20px; width: 300px;";
+        // CHANGED: LEFT to RIGHT
+        container.style.cssText = "position: fixed; bottom: 80px; right: 20px; width: 300px;";
         document.body.appendChild(container);
 
         const mainView = `
@@ -377,7 +380,7 @@
             if(refs.adjPersonal.value !== '') data.timers.personal.acc = parseInt(refs.adjPersonal.value) * 60;
             save(); renderStats(); refs.settings.style.display = 'none'; refs.main.style.display = 'block';
         };
-        document.getElementById('sb-logout').onclick = () => { if(confirm("Logout?")) { localStorage.removeItem(STORAGE_KEY_LOGIN); location.reload(); } };
+        document.getElementById('sb-logout').onclick = () => { if(confirm("Logout?")) { GM_setValue(STORAGE_KEY_LOGIN, ""); location.reload(); } };
 
         const renderStats = () => {
             const total = data.transfers + data.resolves + data.pending;
@@ -408,17 +411,32 @@
 
         function updateButtonUI(type, active) {
             const btn = refs[`${type}Btn`];
-            if (active) { 
+            if (active) {
                 btn.style.display = 'inline-block';
-                btn.innerText = "Stop"; 
-                btn.style.background = "rgba(239, 68, 68, 0.2)"; 
-                btn.style.borderColor = "#ef4444"; 
-                btn.style.color = "#fca5a5"; 
-            } else { 
+                btn.innerText = "Stop";
+                btn.style.background = "rgba(239, 68, 68, 0.2)";
+                btn.style.borderColor = "#ef4444";
+                btn.style.color = "#fca5a5";
+            } else {
                 btn.style.display = 'none';
             }
         }
         ['break', 'lunch', 'personal'].forEach(type => { refs[`${type}Btn`].onclick = () => toggleTimer(type); updateButtonUI(type, data.timers[type].active); });
+
+        // --- NEW: SYNC LISTENER ---
+        GM_addValueChangeListener(STORAGE_KEY_DATA, function(key, oldVal, newVal, remote) {
+            if (remote) {
+                console.log("Remote update detected. Syncing...");
+                data = newVal;
+                renderStats();
+                ['break', 'lunch', 'personal'].forEach(type => { updateButtonUI(type, data.timers[type].active); });
+                if (refs.settings.style.display !== 'none') {
+                    refs.setGoal.value = data.goal;
+                    refs.setStart.value = data.shiftStart;
+                    refs.setEnd.value = data.shiftEnd;
+                }
+            }
+        });
 
         // --- TICKER ---
         function getShiftElapsed() {
@@ -465,7 +483,7 @@
             const count = await fetchAssignedCases(AGENT_NAME);
             refs.assignedVal.innerText = count;
         }
-        setInterval(checkAssignedCases, 30000); 
+        setInterval(checkAssignedCases, 30000);
         checkAssignedCases();
 
         function isShiftTime() { const cur = new Date().toTimeString().slice(0,5); return cur >= data.shiftStart && cur <= data.shiftEnd; }
@@ -494,28 +512,77 @@
             }
         }, 2000);
 
+        // ───────── UPDATED LOGIC (HYBRID) ─────────
         const getId = () => (location.search.match(/caseId=(\d+)/) || [])[1];
+
+        // Define the specific system message to ignore (from Script B)
+        const IGNORE_TRANSFER_MSG = "paragon_tam_cm_transferred_to_agent";
+
         const obs = new MutationObserver(() => {
+            // 1. TRANSFER TRACKING
             document.querySelectorAll("kat-alert[variant='success']").forEach(a => {
                 const txt = (a.getAttribute("description") || "").toLowerCase();
-                const key = (a.getAttribute("header") || "") + txt;
+                const header = (a.getAttribute("header") || "").toLowerCase();
+                const key = header + txt;
+
+                // LOGIC CHANGE: Check ignore list first
+                if (txt.includes(IGNORE_TRANSFER_MSG)) return;
+
                 if (!data.seenAlerts.includes(key)) {
                     data.seenAlerts.push(key);
-                    if (txt.includes("transferred")) { data.transfers++; save(); renderStats(); }
+                    if (txt.includes("transferred")) {
+                        data.transfers++;
+                        save();
+                        renderStats();
+                    }
                 }
             });
+
+            // 2. STATUS TRACKING (RESOLVE / PENDING)
             if (location.href.includes("/hz/view-case")) {
-                const statusEl = document.querySelector("span[data-test-id='case-status'], .case-status, kat-table-cell.value span, [data-cy='case-status-value']");
-                if (statusEl) {
-                    const s = statusEl.innerText.toLowerCase();
-                    const id = getId(); if (!id) return;
+                let statusText = "";
+
+                // Try Script B's robust XPath method first (finds the row with "Status" text)
+                try {
+                    const xpath = "//kat-table-row[kat-table-cell[contains(.,'Status')]]/kat-table-cell[contains(@class,'value')]/span";
+                    const node = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                    if (node) statusText = node.textContent;
+                } catch (e) {}
+
+                // Fallback to CSS selectors if XPath fails
+                if (!statusText) {
+                    const statusEl = document.querySelector(
+                        "span[data-test-id='case-status'], .case-status, kat-table-cell.value span, [data-cy='case-status-value'], div.case-status-field span"
+                    );
+                    if (statusEl) statusText = statusEl.innerText;
+                }
+
+                if (statusText) {
+                    const s = statusText.toLowerCase();
+                    const id = getId();
+                    if (!id) return;
+
                     let grp = null;
-                    if (s.includes("resolved")) grp = "resolved"; else if (s.includes("pending")) grp = "pending";
+                    if (s.includes("resolved")) grp = "resolved";
+                    else if (s.includes("pending")) grp = "pending";
+                    // Note: We stick to .includes("pending") to catch ALL pending types,
+                    // unlike Script B which only catches specific ones.
+
                     const prev = data.caseStates[id];
+
+                    // Only update if the status group has changed (e.g., Pending -> Resolved)
                     if (grp && (!prev || prev !== grp)) {
-                        if (prev === "pending") data.pending--; if (prev === "resolved") data.resolves--;
-                        if (grp === "pending") data.pending++; else if (grp === "resolved") data.resolves++;
-                        data.caseStates[id] = grp; save(); renderStats();
+                        // Remove from old count
+                        if (prev === "pending") data.pending--;
+                        if (prev === "resolved") data.resolves--;
+
+                        // Add to new count
+                        if (grp === "pending") data.pending++;
+                        if (grp === "resolved") data.resolves++;
+
+                        data.caseStates[id] = grp;
+                        save();
+                        renderStats();
                     }
                 }
             }
@@ -523,7 +590,7 @@
         obs.observe(document.body, { childList: true, subtree: true });
     }
 
-    const savedId = localStorage.getItem(STORAGE_KEY_LOGIN);
+    const savedId = GM_getValue(STORAGE_KEY_LOGIN);
     if (savedId) initializeScoreboard(savedId);
     else showLoginPrompt();
 })();
