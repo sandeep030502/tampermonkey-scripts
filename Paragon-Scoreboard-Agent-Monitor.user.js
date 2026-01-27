@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Agent Scoreboard Pro + Slaris +ai (Republic Day Ultimate)
+// @name         Agent Scoreboard Pro + Slaris +ai (final)
 // @namespace    https://github.com/sandeep030502/tampermonkey-scripts
-// @version      1.2
-// @description  Paragon Scoreboard + Slaris (Republic Day Theme with Animations)
+// @version      26.6
+// @description  Paragon Scoreboard + Slaris (Pulsing Dot Indicator)
 // @author       @ysaisan
 // @match        https://paragon-na.amazon.com/hz/*
 // @updateURL    https://raw.githubusercontent.com/sandeep030502/tampermonkey-scripts/main/Paragon-Scoreboard-Agent-Monitor.user.js
@@ -45,42 +45,49 @@
     let liveStats = { PRILO: 0, OB: 0, IB: 0, PRILO_TOT: 0, OB_TOT: 0, IB_TOT: 0 };
     let dashRef = null;
 
-    /* ───────── GEMINI AI ───────── */
-    const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
-    const DEFAULT_MODEL = "gemini-2.5-flash";
 
-    async function callGeminiSummary(apiKey, text) {
-        if (!apiKey) return "❌ Gemini API key missing";
-        const url = `${GEMINI_BASE_URL}${DEFAULT_MODEL}:generateContent?key=${apiKey}`;
-        const payload = {
-            contents: [{
-                parts: [{
-                    text: `Summarize the following text in 3 bullet points:\n\n${text}`
-                }]
+
+/* ───────── GEMINI AI (ADD THIS) ───────── */
+
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+const DEFAULT_MODEL = "gemini-2.5-flash";
+
+async function callGeminiSummary(apiKey, text) {
+    if (!apiKey) return "❌ Gemini API key missing";
+
+    const url = `${GEMINI_BASE_URL}${DEFAULT_MODEL}:generateContent?key=${apiKey}`;
+
+    const payload = {
+        contents: [{
+            parts: [{
+                text: `Summarize the following text in 3 bullet points:\n\n${text}`
             }]
-        };
+        }]
+    };
 
-        return new Promise((resolve) => {
-            GM_xmlhttpRequest({
-                method: "POST",
-                url,
-                headers: { "Content-Type": "application/json" },
-                data: JSON.stringify(payload),
-                onload: (res) => {
-                    try {
-                        const data = JSON.parse(res.responseText);
-                        resolve(
-                            data.candidates?.[0]?.content?.parts?.[0]?.text ||
-                            "⚠️ No response from Gemini"
-                        );
-                    } catch {
-                        resolve("⚠️ Gemini response error");
-                    }
-                },
-                onerror: () => resolve("❌ Gemini request failed")
-            });
+    return new Promise((resolve) => {
+        GM_xmlhttpRequest({
+            method: "POST",
+            url,
+            headers: { "Content-Type": "application/json" },
+            data: JSON.stringify(payload),
+            onload: (res) => {
+                try {
+                    const data = JSON.parse(res.responseText);
+                    resolve(
+                        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+                        "⚠️ No response from Gemini"
+                    );
+                } catch {
+                    resolve("⚠️ Gemini response error");
+                }
+            },
+            onerror: () => resolve("❌ Gemini request failed")
         });
-    }
+    });
+}
+
+
 
     /* ───────── 1. CORE NETWORK LOGIC ───────── */
 
@@ -237,23 +244,23 @@
         <style>
         body{margin:0;background:#070b14;color:#e6f0ff;font-family:sans-serif;overflow-x:hidden}
         .page{max-width:1100px;margin:0 auto;padding:18px}
-        header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px; border-bottom: 2px solid transparent; border-image: linear-gradient(to right, #FF9933, #FFFFFF, #138808) 1;}
-        .btn{padding:5px 10px;border-radius:8px;border:1px solid #FF9933;background:#222;color:#fff;cursor:pointer}
+        header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+        .btn{padding:5px 10px;border-radius:8px;border:1px solid #444;background:#222;color:#fff;cursor:pointer}
         .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
         .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px;text-align:center}
         canvas{max-width:180px;max-height:180px;margin:0 auto}
         table{width:100%;border-collapse:collapse;margin-top:14px}
         th,td{padding:8px;border-bottom:1px solid #333;text-align:left}
         a{color:#e6f0ff;text-decoration:none}
-        .alert-row{background:rgba(255,153,51,0.1)} /* Saffron tint */
+        .alert-row{background:rgba(255,215,0,0.16)}
         .tabs { display: flex; gap: 10px; margin-top: 20px; border-bottom: 1px solid #444; }
         .tab-btn { background: #1a1a1a; color: #888; border: none; padding: 10px 20px; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; }
-        .tab-btn.active { background: #333; color: #fff; border-bottom: 2px solid #FF9933; }
+        .tab-btn.active { background: #333; color: #fff; border-bottom: 2px solid #007FFF; }
         .tab-content { display: none; padding: 10px; background: #111; border-radius: 0 0 8px 8px; }
         .tab-content.active { display: block; }
         </style></head><body>
         <div class="page">
-          <header><h1 style="color:#FF9933">Slaris Live View (Republic Day Edition)</h1><button class="btn" onclick="window.opener.postMessage({type:'sla-request-refresh'},'*')">Refresh Scan</button></header>
+          <header><h1>Slaris Live View (Alerts Only)</h1><button class="btn" onclick="window.opener.postMessage({type:'sla-request-refresh'},'*')">Refresh Scan</button></header>
           <h2>Live Lobby Risk</h2>
           <section class="grid">
               <div class="card">PRILO Alerts<canvas id="aPr"></canvas></div>
@@ -274,7 +281,7 @@
         function mkAlertChart(id, al, tot){
              const ctx=document.getElementById(id); if(charts[id])charts[id].destroy();
              const safe = Math.max(0, tot - al);
-             charts[id]=new Chart(ctx,{type:'doughnut',data:{labels:['Alerts','Safe'],datasets:[{data:[al,safe],backgroundColor:['#FF9933','rgba(19, 136, 8, 0.4)'],borderWidth:0}]},options:{cutout:'70%',plugins:{legend:{display:false}}}});
+             charts[id]=new Chart(ctx,{type:'doughnut',data:{labels:['Alerts','Safe'],datasets:[{data:[al,safe],backgroundColor:['#FFD700','rgba(255,255,255,0.1)'],borderWidth:0}]},options:{cutout:'70%',plugins:{legend:{display:false}}}});
         }
         window.openTab = function(id) {
             document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
@@ -345,10 +352,10 @@
         div.id = "sb-login-overlay";
         div.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:100000; display:flex; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(8px);";
         div.innerHTML = `
-            <div style="background:rgba(30, 41, 59, 0.95); color:#fff; padding:40px; border-radius:16px; text-align:center; border-top:4px solid #FF9933; border-bottom:4px solid #138808; width:320px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
+            <div style="background:rgba(30, 41, 59, 0.95); color:#fff; padding:40px; border-radius:16px; text-align:center; border:1px solid rgba(255,255,255,0.1); width:320px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
                 <h2 style="margin:0 0 10px; font-family:'Amazon Ember', sans-serif;">Welcome</h2>
                 <input type="text" id="sb-login-input" placeholder="Enter Login ID" style="padding:12px; margin-bottom:20px; border-radius:8px; border:1px solid #475569; background:#0f172a; color:#fff; width:100%; outline:none; font-family:'Amazon Ember', sans-serif;">
-                <button id="sb-login-btn" style="width:100%; padding:12px; background:linear-gradient(90deg, #FF9933, #FFFFFF, #138808); color:#000080; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-family:'Amazon Ember', sans-serif;">Start Monitor</button>
+                <button id="sb-login-btn" style="width:100%; padding:12px; background:#FF9900; color:#111; font-weight:bold; border:none; border-radius:8px; cursor:pointer; font-family:'Amazon Ember', sans-serif;">Start Monitor</button>
             </div>
         `;
         document.body.appendChild(div);
@@ -393,7 +400,7 @@
 
         const PHOTO_URL = `https://badgephotos.corp.amazon.com/?uid=${AGENT_NAME}`;
 
-        // --- STYLES (REPUBLIC DAY ULTIMATE) ---
+        // --- STYLES ---
        const style = document.createElement('style');
         style.textContent = `
             /* FLIGHT WING / RADAR PULSE EFFECT */
@@ -402,46 +409,7 @@
                 70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); transform: scale(1); }
                 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); transform: scale(0.95); }
             }
-            /* SHIMMER BORDER ANIMATION */
-            @keyframes shimmerBorder {
-                0% { border-color: #FF9933; }
-                50% { border-color: #FFFFFF; }
-                100% { border-color: #138808; }
-            }
-            /* SPIN ANIMATION FOR CHAKRA */
-            @keyframes spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
-            }
-            /* CONFETTI ANIMATION */
-            @keyframes fall {
-                0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-                100% { transform: translateY(400px) rotate(360deg); opacity: 0; }
-            }
-            .confetti-piece {
-                position: fixed;
-                width: 8px; height: 12px;
-                z-index: 1000001; /* Above everything */
-                pointer-events: none;
-            }
-
-            /* REPUBLIC DAY PANEL: Dark Bg with Tricolor Borders */
-            .sb-panel {
-                display: none;
-                font-family: "Amazon Ember", Arial, sans-serif;
-                background: rgba(15, 23, 42, 0.95); /* Deep dark blue */
-                backdrop-filter: blur(12px);
-                border-top: 3px solid #FF9933;
-                border-bottom: 3px solid #138808;
-                border-left: 1px solid rgba(255,255,255,0.1);
-                border-right: 1px solid rgba(255,255,255,0.1);
-                box-shadow: 0 10px 40px rgba(0,0,0,0.7), 0 0 10px rgba(255,153,51,0.2); /* Saffron Glow */
-                color: #fff;
-                border-radius: 12px;
-                z-index: 999999;
-                /* ANIMATED BORDER OPTION (Subtle) */
-                animation: shimmerBorder 5s infinite alternate;
-            }
+            .sb-panel { display: none; font-family: "Amazon Ember", Arial, sans-serif; background: rgba(23, 31, 46, 0.98); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 8px 32px rgba(0,0,0,0.6); color: #fff; border-radius: 12px; z-index: 999999; }
             .sb-view { padding: 16px; transition: transform 0.3s ease; }
             .sb-btn-small { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; cursor: pointer; border-radius: 4px; padding: 2px 8px; font-size: 10px; transition: all 0.2s; font-weight:bold; }
             .sb-btn-small:hover { background: rgba(255,255,255,0.2); color: #fff; }
@@ -449,15 +417,9 @@
             .sb-timer-fill { height: 100%; width: 0%; transition: width 0.5s linear; }
             .sb-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
             .sb-label { color: #94a3b8; } .sb-val { font-weight: 700; color: #fff; }
-            /* TRICOLOR BORDER ICON */
-            .sb-icon-min {
-                position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%;
-                border-top: 3px solid #FF9933; border-right: 3px solid #fff; border-bottom: 3px solid #138808; border-left: 3px solid #000080;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 100000; display: block; overflow: hidden;
-            }
+            .sb-icon-min { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 100000; display: block; overflow: hidden; }
             .sb-bucket { margin-bottom: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); }
-            /* TRICOLOR SEPARATOR */
-            .sb-bucket-title { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid transparent; border-image: linear-gradient(to right, #FF9933, #FFFFFF, #138808) 1; padding-bottom: 4px; }
+            .sb-bucket-title { font-size: 10px; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; }
             .sb-timer-header { display: flex; align-items: center; font-size: 11px; margin-bottom: 2px; }
             .sb-th-title { flex: 0 0 auto; color: #94a3b8; width: 85px; }
             .sb-th-val { flex: 1 1 auto; text-align: center; font-family: monospace; font-weight: bold; }
@@ -488,18 +450,19 @@
             /* PULSING DOT */
             .sb-live-badge { display: inline-block; margin-left: 8px; width: 8px; height: 8px; background-color: #4ade80; border-radius: 50%; vertical-align: middle; animation: sb-pulse-dot 2s infinite; }
 
-            /* --- MESSENGER STYLE AI CHAT --- */
+            /* --- NEW: MESSENGER STYLE AI CHAT --- */
             .sb-ai-chat {
                 position: absolute;
-                bottom: 100%;
+                bottom: 100%; /* Sits exactly on top of the main panel */
                 left: 0;
                 width: 100%;
-                background: #1e293b;
+                background: #1e293b; /* Slate-800 */
                 border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 12px 12px 0 0; /* Rounded top only, or full bubble? Let's do bubble above */
                 border-radius: 12px;
                 margin-bottom: 8px;
                 box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
-                display: none;
+                display: none; /* Hidden by default */
                 flex-direction: column;
                 overflow: hidden;
                 transform-origin: bottom center;
@@ -508,14 +471,12 @@
             }
             @keyframes sb-pop-in { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
-            /* FLAG GRADIENT HEADER */
             .sb-ai-header {
-                background: linear-gradient(90deg, #FF9933, #FFFFFF, #138808);
+                background: linear-gradient(90deg, #7c3aed, #db2777); /* Purple to Pink gradient */
                 padding: 8px 12px;
                 font-size: 12px;
                 font-weight: bold;
-                color: #000080;
-                text-shadow: 0px 0px 1px rgba(255,255,255,0.8);
+                color: #fff;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -528,37 +489,18 @@
                 font-size: 13px;
                 line-height: 1.5;
                 color: #e2e8f0;
-                white-space: pre-wrap;
+                white-space: pre-wrap; /* Keeps formatting */
                 background: #0f172a;
             }
-            .sb-ai-close { background: none; border: none; color: #000080; cursor: pointer; font-size: 14px; font-weight: bold; }
-            .sb-ai-close:hover { color: #000; }
+            .sb-ai-close { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 14px; font-weight: bold; }
+            .sb-ai-close:hover { color: #fff; }
 
-            /* TYPING DOTS */
+            /* Typing Dots Animation */
             .sb-typing { display: flex; align-items: center; gap: 4px; padding: 4px; }
             .sb-dot { width: 6px; height: 6px; background: #94a3b8; border-radius: 50%; animation: sb-bounce 1.4s infinite ease-in-out both; }
             .sb-dot:nth-child(1) { animation-delay: -0.32s; }
             .sb-dot:nth-child(2) { animation-delay: -0.16s; }
             @keyframes sb-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-
-            /* GRADIENT TEXT */
-            .sb-tricolor-text {
-                background: linear-gradient(to right, #FF9933 20%, #FFF 50%, #138808 80%);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                color: transparent;
-                font-weight: 800;
-            }
-            /* CHAKRA SPINNER CLASS */
-            .sb-chakra-spin {
-                animation: spin 8s linear infinite;
-                transform-origin: center;
-                cursor: pointer;
-            }
-            .sb-chakra-spin:hover {
-                animation: spin 1s linear infinite; /* Spin faster on hover */
-            }
         `;
         document.head.appendChild(style);
 
@@ -573,22 +515,18 @@
         document.body.appendChild(container);
 
         // --- NEW: CHAT HTML ADDED AT THE TOP OF CONTAINER ---
-        // Ashoka Chakra SVG (Blue)
-        const CHAKRA_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="#000080" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px; height:20px;"><circle cx="12" cy="12" r="10"/><path d="M12 2v20"/><path d="M2 12h20"/><path d="M4.93 4.93l14.14 14.14"/><path d="M19.07 4.93L4.93 19.07"/></svg>`;
+
 
         const mainView = `
             <div id="sb-view-main" class="sb-view">
                 <div id="sb-header" style="display:flex; gap:12px; align-items:center; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:12px; cursor: move;">
-                    <img src="${PHOTO_URL}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid #FF9933;" onerror="this.style.display='none'">
+                    <img src="${PHOTO_URL}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.1);" onerror="this.style.display='none'">
                     <div style="flex:1;">
-                        <div style="font-weight:700; font-size:15px; display:flex; align-items:center; gap:6px;">
-                            <span class="sb-tricolor-text">${AGENT_NAME}</span>
-                            <span id="sb-chakra-btn" class="sb-chakra-spin" title="Click for Fireworks!">${CHAKRA_SVG}</span>
-                        </div>
-                        <div id="sb-status-txt" style="font-size:12px; color:#FF9933;">Loading...</div>
+                        <div style="font-weight:700; font-size:15px;">${AGENT_NAME} <span class="sb-live-badge"></span></div>
+                        <div id="sb-status-txt" style="font-size:12px; color:#fbbf24;">Loading...</div>
                     </div>
 
-                    <button id="sb-ai-btn" style="display:none; background:rgba(255,153,51,0.2); border:1px solid #FF9933; border-radius:6px; padding:4px 8px; color:#FF9933; font-size:14px; cursor:pointer; transition:all 0.2s;" title="Summarize Selection">
+                    <button id="sb-ai-btn" style="display:none; background:rgba(124, 58, 237, 0.2); border:1px solid rgba(124, 58, 237, 0.5); border-radius:6px; padding:4px 8px; color:#c084fc; font-size:14px; cursor:pointer; transition:all 0.2s;" title="Summarize Selection">
                         ✨
                     </button>
 
@@ -608,7 +546,7 @@
                             <span><span id="sb-cur-total">0</span> / <span id="sb-goal-display">${data.goal}</span></span>
                         </div>
                         <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden;">
-                            <div id="sb-prod-bar" style="height:100%; width:0%; background:linear-gradient(90deg, #FF9933, #FFFFFF, #138808);"></div>
+                            <div id="sb-prod-bar" style="height:100%; width:0%; background:#38bdf8;"></div>
                         </div>
                     </div>
                     <div class="sb-stat-grid">
@@ -658,7 +596,7 @@
                                 <span class="sb-th-val" id="tmr-break-val">00:00</span>
                                 <button id="btn-break" class="sb-btn-small sb-th-btn" style="display:none;">Stop</button>
                             </div>
-                            <div class="sb-timer-bar"><div id="tmr-break-bar" class="sb-timer-fill" style="background:#FF9933;"></div></div>
+                            <div class="sb-timer-bar"><div id="tmr-break-bar" class="sb-timer-fill" style="background:#38bdf8;"></div></div>
                         </div>
                         <div style="margin-bottom:10px;">
                             <div class="sb-timer-header">
@@ -666,7 +604,7 @@
                                 <span class="sb-th-val" id="tmr-lunch-val">00:00</span>
                                 <button id="btn-lunch" class="sb-btn-small sb-th-btn" style="display:none;">Stop</button>
                             </div>
-                            <div class="sb-timer-bar"><div id="tmr-lunch-bar" class="sb-timer-fill" style="background:#2472fc;"></div></div>
+                            <div class="sb-timer-bar"><div id="tmr-lunch-bar" class="sb-timer-fill" style="background:#a855f7;"></div></div>
                         </div>
                         <div>
                             <div class="sb-timer-header">
@@ -674,7 +612,7 @@
                                 <span class="sb-th-val" id="tmr-personal-val">00:00</span>
                                 <button id="btn-personal" class="sb-btn-small sb-th-btn" style="display:none;">Stop</button>
                             </div>
-                            <div class="sb-timer-bar"><div id="tmr-personal-bar" class="sb-timer-fill" style="background:#138808;"></div></div>
+                            <div class="sb-timer-bar"><div id="tmr-personal-bar" class="sb-timer-fill" style="background:#f472b6;"></div></div>
                         </div>
                     </div>
                 </div>
@@ -687,7 +625,8 @@
                     <h3 style="margin:0; font-size:14px;">Settings</h3>
                     <button id="sb-close-settings" style="background:none; border:none; color:#fff; cursor:pointer;">✕</button>
                 </div>
-                <div class="sb-setting-header">Gemini AI</div>
+                <!-- GEMINI AI SETTINGS -->
+<div class="sb-setting-header">Gemini AI</div>
 <div class="sb-setting-row" style="flex-direction:column; align-items:flex-start;">
     <span style="color:#cbd5e1; font-size:10px; margin-bottom:4px;">API Key</span>
     <input
@@ -707,7 +646,7 @@
                 <div class="sb-setting-row"><span>Lunch (mins)</span><input type="number" id="adj-lunch" class="sb-input"></div>
                 <div class="sb-setting-row"><span>Personal (mins)</span><input type="number" id="adj-personal" class="sb-input"></div>
                 <div style="margin-top:20px; text-align:center;">
-                    <button id="sb-save-settings" style="background:#FF9933; color:#0f172a; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:10px;">Save & Back</button>
+                    <button id="sb-save-settings" style="background:#38bdf8; color:#0f172a; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:10px;">Save & Back</button>
                     <button id="sb-logout" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid #ef4444; padding:8px 16px; border-radius:6px; cursor:pointer; width:100%;">Logout</button>
                 </div>
             </div>
@@ -725,33 +664,13 @@
         </div>
     `;
 
-    // 2. Add Chat View to the Container
+    // 2. Add Chat View to the Container (Updated Line 664)
     container.innerHTML = chatView + mainView + settingsView;
 
-    // 3. Make Draggable
+    // 3. Make Draggable (Keep this)
     makeDraggable(container, document.getElementById('sb-header'));
 
-    // ───────── CONFETTI LOGIC ─────────
-    function fireConfetti() {
-        const colors = ['#FF9933', '#FFFFFF', '#138808', '#000080'];
-        for (let i = 0; i < 60; i++) {
-            const el = document.createElement('div');
-            el.className = 'confetti-piece';
-            el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            el.style.left = (Math.random() * 100) + 'vw';
-            el.style.top = '-10px';
-            el.style.animation = `fall ${Math.random() * 2 + 1}s linear forwards`;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 3000);
-        }
-    }
-    // Bind click on Chakra
-    document.getElementById('sb-chakra-btn').onclick = (e) => {
-        e.stopPropagation(); // Don't drag
-        fireConfetti();
-    };
-
-    // ───────── AI CHAT LOGIC ─────────
+    // ───────── NEW AI CHAT LOGIC ─────────
 
     // Get references to the new chat elements
     const aiChatBox = document.getElementById('sb-ai-chat');
@@ -801,7 +720,7 @@
 
             // C. Format the result
             let formatted = result
-                .replace(/\*\*(.*?)\*\*/g, '<b style="color:#FF9933">$1</b>') // Bold -> Saffron
+                .replace(/\*\*(.*?)\*\*/g, '<b style="color:#e879f9">$1</b>') // Bold -> Pink
                 .replace(/^\* /gm, '• '); // Bullets -> Dots
 
             // D. Display result
@@ -893,8 +812,7 @@
             refs.curTotal.innerText = total; refs.goalDisplay.innerText = data.goal;
             const pct = Math.min((total / data.goal) * 100, 100);
             refs.prodBar.style.width = `${pct}%`;
-            // Keep gradient on logic change
-            refs.prodBar.style.background = "linear-gradient(90deg, #FF9933, #FFFFFF, #138808)";
+            refs.prodBar.style.background = pct >= 100 ? "#EAB308" : pct > 50 ? "#38bdf8" : "#f472b6";
         };
         renderStats();
 
@@ -942,8 +860,7 @@
             ['break', 'lunch', 'personal'].forEach(type => {
                 const sec = getAccumulatedTime(type);
                 const limit = limits[type];
-                // Saffron, Blue, Green Bars
-                let display = "", color = "#fff", barColor = type === 'break' ? '#FF9933' : type === 'lunch' ? '#2472fc' : '#138808';
+                let display = "", color = "#fff", barColor = type === 'break' ? '#38bdf8' : type === 'lunch' ? '#a855f7' : '#f472b6';
                 if (sec > limit) {
                     const extra = sec - limit;
                     display = `+${Math.floor(extra/60).toString().padStart(2,'0')}:${(extra%60).toString().padStart(2,'0')}`; color = "#ef4444"; barColor = "#ef4444";
@@ -983,7 +900,7 @@
                 refs.statusTxt.innerText = `${res.status} (${formatDuration(res.duration)})`;
                 let color = '#f87171';
                 if (res.status === 'Available') color = '#4ade80';
-                else if (['Meeting', 'Break', 'Lunch', 'Aux', 'Personal'].some(s => res.status.includes(s))) color = '#FF9933';
+                else if (['Meeting', 'Break', 'Lunch', 'Aux', 'Personal'].some(s => res.status.includes(s))) color = '#fbbf24';
                 refs.statusTxt.style.color = color; icon.style.borderColor = color;
 
                 if (isShiftTime()) {
@@ -1004,7 +921,7 @@
         /* ───────── SLA SCAN ENGINE (SLARIS LOGIC FIXED) ───────── */
         async function runSlaScan() {
             refs.slaStatus.innerText = "Scanning...";
-            refs.slaStatus.style.color = "#FF9933";
+            refs.slaStatus.style.color = "#fbbf24";
 
             // Get initial page to determine total
             const p1 = await fetchSlaPage(1);
