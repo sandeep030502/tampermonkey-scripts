@@ -7,8 +7,8 @@
 // @match        https://paragon-na.amazon.com/hz/*
 // @grant        GM_setValue
 // @grant        GM_getValue
-// @updateURL    https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/vista-gelo.user.js
-// @downloadURL  https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/vista-gelo.user.js
+// @updateURL    https://raw.githubusercontent.com/tampermonkey-scripts/vista-gelo.user.js/main/vista-gelo.user.js
+// @downloadURL  https://raw.githubusercontent.com/tampermonkey-scripts/vista-gelo.user.js/main/vista-gelo.user.js
 // ==/UserScript==
 // © 2026 ysaisan. All rights reserved.
 // This script is provided for authorized use only.
